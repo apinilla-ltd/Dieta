@@ -1,0 +1,1054 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Práctica 16 · Estudio energético de la dieta</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#edf2f0; --surface:#ffffff; --surface2:#f5f8f7; --ink:#16262e; --muted:#566872; --line:#d3deda;
+  --brand:#0a7a4a; --brand-ink:#ffffff; --brand-soft:#dff2e8;
+  --blue:#1d6fb8; --blue-soft:#e0edf8; --amber:#9a5b00; --amber-soft:#fff0d1;
+  --c-tmb:#2f7fc1; --c-q:#e0a526; --c-act:#2a9d6f;
+  --focus:#1d6fb8;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#101a1f; --surface:#17252c; --surface2:#1d2d35; --ink:#e6eef0; --muted:#9db0b8; --line:#2c414b;
+    --brand:#3cc487; --brand-ink:#08241a; --brand-soft:#173a2c;
+    --blue:#6db3ef; --blue-soft:#183146; --amber:#f0b44c; --amber-soft:#3b2d12;
+    --c-tmb:#5aa3dc; --c-q:#e8b94a; --c-act:#46c08f; --focus:#8cc5f5;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#101a1f; --surface:#17252c; --surface2:#1d2d35; --ink:#e6eef0; --muted:#9db0b8; --line:#2c414b;
+  --brand:#3cc487; --brand-ink:#08241a; --brand-soft:#173a2c;
+  --blue:#6db3ef; --blue-soft:#183146; --amber:#f0b44c; --amber-soft:#3b2d12;
+  --c-tmb:#5aa3dc; --c-q:#e8b94a; --c-act:#46c08f; --focus:#8cc5f5;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{height:100%;scroll-padding-top:calc(env(safe-area-inset-top,0px) + 120px)}
+body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font-family:'Lexend',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;font-size:15.5px;line-height:1.5}
+h1,h2,h3{margin:0;font-weight:600;line-height:1.2}
+h1{font-size:clamp(22px,4.2vw,30px)}
+h2{font-size:19px;margin-bottom:10px}
+h3{font-size:16px}
+p{margin:0 0 10px}
+.wrap{max-width:1040px;margin:0 auto;padding:0 14px}
+.head{padding:18px 0 12px}
+.school{color:var(--muted);font-size:13.5px;margin-bottom:4px}
+.headrow{display:flex;gap:12px;justify-content:space-between;align-items:flex-start;flex-wrap:wrap}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+button,select,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 14px;min-height:40px;font-weight:500}
+.btn:hover{border-color:var(--brand)}
+.btn.primary{background:var(--brand);border-color:var(--brand);color:var(--brand-ink)}
+.btn.small{min-height:34px;padding:5px 11px;font-size:14px}
+.btn.danger{border-color:var(--amber);color:var(--amber)}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+
+/* barra fija: pestañas + balanza */
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--surface);border-block:1px solid var(--line)}
+.tabs{display:flex;gap:4px;overflow-x:auto;padding:8px 0 6px;scrollbar-width:thin}
+.tab{flex:0 0 auto;border:0;background:transparent;border-radius:8px;padding:8px 13px;font-weight:500;color:var(--muted);min-height:38px;white-space:nowrap}
+.tab[aria-selected="true"]{background:var(--brand);color:var(--brand-ink)}
+.tab:not([aria-selected="true"]):hover{background:var(--brand-soft);color:var(--ink)}
+.meter{display:grid;grid-template-columns:auto 1fr;gap:6px 18px;align-items:center;padding:4px 0 10px}
+.figs{display:flex;gap:18px;flex-wrap:wrap}
+.fig{display:flex;flex-direction:column;line-height:1.15}
+.fig b{font-size:20px;font-weight:600}
+.fig span{font-size:12.5px;color:var(--muted)}
+.fig.be b.pos{color:var(--blue)} .fig.be b.neg{color:var(--amber)} .fig.be b.zero{color:var(--brand)}
+.gaugebox{min-width:140px}
+.gauge{position:relative;height:12px;border-radius:6px;background:var(--surface2);border:1px solid var(--line);overflow:hidden}
+.gauge::after{content:"";position:absolute;left:50%;top:-1px;bottom:-1px;width:2px;background:var(--ink);opacity:.55}
+.gfill{position:absolute;top:0;bottom:0;transition:left .25s,width .25s}
+.gfill.pos{background:var(--blue)} .gfill.neg{background:var(--amber)}
+.gscale{display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted);margin-top:2px}
+@media(max-width:640px){.meter{grid-template-columns:1fr}}
+
+main{padding:16px 0 60px}
+.panel{display:none}.panel.on{display:block}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:14px}
+.intro{color:var(--muted);max-width:75ch}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:14px;color:var(--muted);font-weight:500}
+input[type=text],input[type=number],input[type=date],select,textarea{border:1px solid var(--line);background:var(--surface2);border-radius:8px;padding:8px 10px;min-height:40px;width:100%;color:var(--ink)}
+textarea{min-height:110px;resize:vertical;line-height:1.5}
+input[type=checkbox]{width:18px;height:18px;accent-color:var(--brand);flex:0 0 auto;margin-top:3px}
+.chk{display:flex;gap:10px;align-items:flex-start;margin:10px 0;font-size:14.5px}
+.msg{color:var(--amber);font-size:14px;margin:10px 0 0;min-height:0}
+.msg:empty{display:none}
+.idx{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.idxbox{background:var(--surface2);border:1px solid var(--line);border-radius:8px;padding:12px}
+.idxbox .v{font-size:26px;font-weight:600;line-height:1.1}
+.idxbox .v small{font-size:14px;font-weight:400;color:var(--muted)}
+.idxbox .t{font-weight:500}
+.idxbox .calc{font-size:13.5px;color:var(--muted);margin-top:4px;word-break:break-word}
+details summary{cursor:pointer;font-weight:500}
+details p{margin-top:8px;color:var(--muted);font-size:14.5px;max-width:75ch}
+
+/* selector de días */
+.days{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.day{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:7px 12px;min-height:38px;font-weight:500;position:relative}
+.day[aria-pressed="true"]{background:var(--brand);border-color:var(--brand);color:var(--brand-ink)}
+.day .dot{display:none;position:absolute;top:5px;right:5px;width:7px;height:7px;border-radius:50%;background:var(--c-q)}
+.day .dot.on{display:block}
+.daysec{display:none}.daysec.on{display:block}
+.dayhead{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.daytotal{font-weight:600}
+
+.meal{background:var(--surface);border:1px solid var(--line);border-left:5px solid var(--brand);border-radius:10px;padding:12px 14px;margin-bottom:12px}
+.mealhead{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:8px}
+.mealhead small{color:var(--muted);font-weight:400;margin-left:6px}
+.mealtot{font-weight:600}
+.frow,.arow{display:grid;gap:8px;align-items:start;padding:8px 0;border-top:1px dashed var(--line)}
+.frow{grid-template-columns:minmax(130px,.8fr) minmax(190px,1.7fr) 124px 78px 36px}
+.arow{grid-template-columns:minmax(190px,1.6fr) 110px 110px 86px 36px}
+.unit{font-size:12.5px;color:var(--muted);display:block;margin-top:2px}
+.qtybox{display:flex;flex-direction:column}
+.kc{font-weight:600;padding-top:9px;text-align:right}
+.kc span{font-weight:400;color:var(--muted);font-size:13px}
+.x{border:1px solid var(--line);background:var(--surface);border-radius:8px;width:36px;height:40px;font-size:20px;line-height:1;color:var(--muted)}
+.x:hover{border-color:var(--amber);color:var(--amber)}
+.hint{grid-column:1/-1;font-size:13px;color:var(--muted);margin-top:-2px}
+.hint.warn{color:var(--amber);background:var(--amber-soft);border-radius:6px;padding:5px 9px}
+.sub{display:flex;gap:6px;align-items:center;margin-top:6px}
+.sub input{max-width:130px}
+.coef{padding-top:9px;font-size:13.5px;color:var(--muted)}
+.empty{color:var(--muted);font-size:14px;padding:6px 0}
+.prog{height:10px;border-radius:5px;background:var(--surface2);border:1px solid var(--line);overflow:hidden;margin:4px 0 2px}
+.prog i{display:block;height:100%;background:var(--c-act);width:0}
+.prog.over i{background:var(--amber)}
+@media(max-width:720px){
+  .frow,.arow{grid-template-columns:1fr auto auto}
+  .frow>.cat,.frow>.food,.arow>.aact{grid-column:1/-1}
+  .arow .coef{display:none}
+}
+
+/* tablas */
+.tw{overflow-x:auto;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:14.5px}
+th,td{padding:8px 10px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+thead th{background:var(--brand-soft);font-weight:600;position:sticky;top:0}
+tfoot td,tr.total td{font-weight:600;background:var(--surface2)}
+td.pos{color:var(--blue);font-weight:600} td.neg{color:var(--amber);font-weight:600}
+td.l,th.l{text-align:left}
+.stack{display:flex;height:30px;border-radius:6px;overflow:hidden;border:1px solid var(--line);margin:4px 0 12px}
+.stack div{display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:600;min-width:0;overflow:hidden}
+.stack .a{background:var(--c-tmb)} .stack .b{background:#b07d0c} .stack .c{background:var(--c-act)}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:13.5px;color:var(--muted);margin-bottom:6px}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.note{background:var(--blue-soft);border-radius:8px;padding:10px 13px;font-size:14.5px;margin-bottom:10px}
+.note.amber{background:var(--amber-soft)}
+.res{background:var(--surface2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-top:10px;font-size:15px}
+.search{max-width:360px;margin-bottom:10px}
+.pill{display:inline-block;font-size:12px;padding:1px 8px;border-radius:10px;background:var(--brand-soft);color:var(--ink)}
+.warnmark{color:var(--amber)}
+.tblscroll{max-height:560px;overflow:auto;border:1px solid var(--line);border-radius:8px}
+
+@media print{
+  :root{--bg:#fff;--surface:#fff;--surface2:#fff}
+  body{font-size:12px}
+  .bar,.actions,.days,.btn,.x,#p-consulta,.noprint,.sub .hintx{display:none!important}
+  .panel,.daysec{display:block!important}
+  .card,.meal{break-inside:avoid;border-color:#999}
+  .panel{break-before:page}.panel:first-of-type{break-before:auto}
+  select,input,textarea{border:1px solid #bbb;appearance:none;-webkit-appearance:none;background:#fff}
+  textarea{min-height:80px}
+}
+@media (prefers-reduced-motion: reduce){.gfill{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap head">
+  <div class="school">Colegio de Fomento Las Tablas · Biología y Geología · 3.º ESO</div>
+  <div class="headrow">
+    <h1>Práctica 16: estudio energético de la dieta</h1>
+    <div class="actions">
+      <button class="btn" data-act="print">Imprimir / guardar PDF</button>
+      <button class="btn danger" data-act="reset" id="btnReset">Borrar todo</button>
+    </div>
+  </div>
+</div>
+
+<div class="bar">
+  <div class="wrap">
+    <nav class="tabs" role="tablist" aria-label="Apartados de la práctica">
+      <button class="tab" role="tab" data-act="tab" data-tab="datos">1 · Mis datos</button>
+      <button class="tab" role="tab" data-act="tab" data-tab="comidas">2 · Comidas</button>
+      <button class="tab" role="tab" data-act="tab" data-tab="actividad">3 · Actividad</button>
+      <button class="tab" role="tab" data-act="tab" data-tab="balance">4 · Balance</button>
+      <button class="tab" role="tab" data-act="tab" data-tab="conclusiones">5 · Conclusiones</button>
+      <button class="tab" role="tab" data-act="tab" data-tab="consulta">Tablas de consulta</button>
+    </nav>
+    <div class="meter" aria-live="polite">
+      <div class="figs">
+        <div class="fig"><b id="mIng">—</b><span>kcal tomadas al día</span></div>
+        <div class="fig"><b id="mGas">—</b><span>kcal gastadas al día</span></div>
+        <div class="fig be"><b id="mBe">—</b><span id="mBeL">balance medio</span></div>
+      </div>
+      <div class="gaugebox" aria-hidden="true">
+        <div class="gauge"><div class="gfill" id="gfill"></div></div>
+        <div class="gscale"><span>−1000</span><span>0</span><span>+1000 kcal</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<main class="wrap">
+  <section id="p-datos" class="panel" aria-label="Mis datos"></section>
+  <section id="p-comidas" class="panel" aria-label="Diario de comidas"></section>
+  <section id="p-actividad" class="panel" aria-label="Diario de actividad"></section>
+  <section id="p-balance" class="panel" aria-label="Balance final"></section>
+  <section id="p-conclusiones" class="panel" aria-label="Conclusiones"></section>
+  <section id="p-consulta" class="panel" aria-label="Tablas de consulta"></section>
+</main>
+
+<script>
+/* ============ DATOS ============ */
+const DAYS=['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
+const MEALS=[['Desayuno',''],['Almuerzo','media mañana'],['Comida','mediodía'],['Merienda',''],['Cena','']];
+const MEAL_NAMES=MEALS.map(m=>m[0]);
+
+const CATS=[],FOODS=[],FMAP={};
+function addCat(id,table,title,raw){
+  CATS.push({id,table,title});
+  raw.trim().split('\n').forEach(l=>{
+    const p=l.split('|'); const name=p[0].trim(), ref=p[1].trim(), kcal=+p[2], warn=(p[3]||'').trim();
+    const m=ref.match(/^(\d+(?:\.\d+)?)\s*(g|ml)$/i);
+    const f={key:id+'::'+name,cat:id,name,ref,kcal,u:m?m[2].toLowerCase():'r',q:m?+m[1]:1,warn};
+    FOODS.push(f);FMAP[f.key]=f;
+  });
+}
+/* ---- Tabla 2 ---- */
+addCat('aves','T2','Aves',`
+Pollo a la plancha|100 g|98
+Pollo cocido|100 g|100
+Pollo asado|100 g|110
+Pollo a la parrilla|100 g|195
+Pollo adobado|100 g|220
+Pollo al vino tinto|100 g|280
+Nuggets de pollo fritos|100 g|230
+Hígado de pollo|100 g|124
+Perdiz asada|100 g|206
+Pato asado|100 g|320
+Salami de pavo|100 g|147
+Pavo asado|100 g|220
+Pavo (carnes blancas)|100 g|175
+Pavo (carnes rojas)|100 g|280
+Codorniz asada|1 porción|190`);
+addCat('embut','T2','Embutidos',`
+Jamón cocido|100 g|110
+Jamón crudo (serrano)|100 g|240
+Chorizos|100 g|300
+Longaniza|100 g|360
+Morcilla|100 g|395
+Mortadela|100 g|310
+Paté de foie|1 cucharada|85
+Salami|100 g|400
+Salchichas de Viena|1 unidad|120
+Salchichas light|100 g|150`);
+addCat('carnes','T2','Carnes',`
+Filete de cerdo|150 g|360
+Chuleta de cerdo|100 g|336
+Hígado de cerdo|100 g|264
+Lomo de cerdo|100 g|362
+Jamón de cerdo|100 g|393
+Lechón escabechado|100 g|195
+Pata asada|100 g|390
+Costillas de cerdo fritas|1 porción|375
+Costillas de cerdo asadas|1 porción|275
+Beicon frito|100 g|540
+Cordero asado|100 g|194
+Chuleta de cordero|100 g|356
+Buey asado|100 g|288
+Hígado de buey|100 g|210
+Buey guisado|100 g|235
+Ternera guisada|100 g|256
+Filete de ternera|150 g|180
+Hígado de ternera|100 g|256
+Ternera asada|100 g|231
+Lomo de ternera|100 g|174
+Corazón|100 g|180
+Estofado|100 g|90
+Filete mignon|1 porción|250
+Hamburguesa (solo la carne)|100 g|280
+Hamburguesa a la parrilla|100 g|370
+Hamburguesa al horno|100 g|370
+Hígado asado|100 g|140
+Lengua en escabeche|100 g|270
+Lomo a la pimienta|1 porción|250
+Mollejas|2 porciones|160
+Pastel de carne|1 porción|275
+Carne picada|100 g|180
+Riñón|100 g|250
+Roast beef|1 porción|225
+Roast beef en lata|100 g|220`);
+addCat('pescados','T2','Pescados y frutos del mar',`
+Almejas cocidas con pasta|1 taza|150
+Almejas crudas|100 g|80
+Anchoas enlatadas|100 g|180
+Arenque ahumado|1 porción chica|210
+Arenque en escabeche|1 porción chica|215
+Atún en aceite|100 g|200
+Atún en agua|100 g|135
+Atún fresco|100 g|120
+Bacalao ahumado|100 g|95
+Bacalao deshidratado|100 g|130
+Bacalao asado|1 porción|100
+Bacalao a la parrilla|1 porción|180
+Bacalao seco y salado|100 g|340
+Cóctel de gambas|6 unidades|75
+Gambas hervidas|100 g|90
+Langosta termidor|1 mediana|390
+Langosta al horno|1 porción|245
+Lenguado frito|1 porción|125
+Lenguado a la parrilla|1 porción|90
+Mejillones crudos|100 g|65
+Merluza al horno|100 g|60
+Merluza hervida|100 g|50
+Ostras crudas|100 g|90
+Salmón ahumado|100 g|170
+Pulpo cocido|100 g|70
+Salmón crudo|100 g|220
+Sardinas en lata|100 g|200
+Sardinas naturales|100 g|90
+Langostinos|100 g|112
+Mero|100 g|96
+Lubina (róbalo)|100 g|72`);
+addCat('frutas','T2','Frutas',`
+Piña|100 g|56
+Uvas|100 g|57
+Plátano mediano|1 mediano|100
+Manzana|125 g|75
+Pera|1 mediana|70
+Fresas|125 g|40
+Albaricoque|50 g|20
+Pomelo|125 g|45
+Cereza|100 g|63
+Kiwi|1 pequeño|34
+Limón|80 g|45
+Melón|160 g|60
+Ciruelas|125 g|60
+Mandarina|1 mediana|50
+Melocotón|1 mediano|60
+Naranja dulce|100 g|42`);
+addCat('postres','T2','Postres, helados y lácteos',`
+Flan casero|100 g|150
+Arroz con leche|100 g|165
+Pudin de limón|100 g|140
+Helado cremoso de almendras|100 g|175
+Helado de chocolate|100 g|150
+Helado cremoso de cereza|100 g|150
+Helado de café|100 g|160
+Helado de caramelo|100 g|190
+Helado cremoso de frambuesa|100 g|150
+Leche entera|1 taza|150
+Leche desnatada|1 taza|85
+Leche condensada|100 g|420
+Leche en polvo|1 cucharada|30
+Yogur entero|1 taza|140
+Yogur desnatado|1 taza|127
+Nata montada (chantillí)|1 taza|410`);
+addCat('secos','T2','Frutos secos',`
+Almendras|100 g|600
+Avellanas|100 g|650
+Pipas de girasol|100 g|578
+Palomitas de maíz|100 g|478`);
+addCat('prep','T2','Comidas preparadas',`
+Big Mac|1 unidad|560
+Hamburguesa|1 unidad|250
+Hamburguesa con queso|1 unidad|310
+Cuarto de libra|1 unidad|420
+Sándwich de jamón y queso|1 unidad|330
+Whopper|1 unidad|640
+Whopper doble|1 unidad|870
+Sándwich de pollo y lechuga|1 unidad|300
+Sándwich de queso y tomate|1 unidad|170
+Sándwich de salami y queso|1 unidad|375
+Espaguetis con mariscos|1 taza|150
+Pizza de mozzarella|1 porción chica|170
+Milanesa de ternera|1 mediana|300
+Empanada al horno|1 unidad|280
+Empanada frita|1 unidad|400
+Espaguetis con albóndigas|100 g|250
+Banana Split Baskin-Robbins|1 unidad|1030
+California Roll|9 piezas|290
+Subway pechuga de pavo (15 cm)|1 unidad|340
+Subway mariscos (15 cm)|1 unidad|640
+Kétchup|1 cucharada|15`);
+addCat('harinas','T2','Harinas, panes y granos',`
+Bizcocho (biscuit)|100 g|460
+Pan de fruta|50 g|185
+Cebada|100 g|367
+Harina de maíz|20 g|65
+Arroz (crudo)|100 g|357
+Harina de arroz|20 g|70
+Pan integral|45 g|95
+Pan blanco (pan normal, barra)|100 g|265
+Trigo|100 g|364`);
+addCat('huevos','T2','Huevos, aceites y grasas',`
+Huevo crudo|1 unidad|78
+Huevo cocido|1 unidad|100
+Clara frita|1 unidad|23
+Yema frita|1 unidad|85
+Huevo frito|1 unidad|108
+Tortilla francesa|1 unidad|104
+Aceite de oliva|10 g|90
+Aceite de trigo|10 g|89
+Aceite de coco|10 g|86
+Aceite de girasol|10 g|90
+Manteca de cerdo|10 g|87
+Aceite de hígado de bacalao|10 g|90
+Mantequilla (con o sin sal)|10 g|76
+Margarina|10 g|72`);
+addCat('cafe','T2','Café y zumos naturales',`
+Zumo de tomate|200 ml|23
+Zumo de naranja|200 ml|90
+Café sin azúcar|50 ml|0
+Café con azúcar|50 ml|48
+Zumo de melocotón|200 ml|64`);
+addCat('copas','T2','Refrescos',`
+Coca-Cola|350 ml|137
+Zumo de limón natural (sin azúcar)|100 ml|22
+Sprite|350 ml|115`);
+addCat('verduras','T2','Vegetales y legumbres',`
+Zanahoria|100 g|35
+Brócoli|100 g|35
+Coles de Bruselas|100 g|41
+Coliflor|100 g|32
+Ajo|2 g|3
+Guindillas (chiles)|200 g|75
+Calabaza|100 g|28
+Aceitunas negras|20 g|70
+Aceitunas verdes|20 g|30
+Espinaca|100 g|26
+Tomates|200 g|35
+Pimiento verde|100 g|29
+Aguacate|100 g|180
+Calabacín|½ taza|40
+Cebolla|1 mediana|50
+Puerros|1 unidad|7
+Lechuga romana|100 g|21
+Lechuga fresca|2 hojas|7
+Escarola fresca|100 g|20
+Berenjenas frescas|2 rodajas|70
+Maíz|1 chico|100
+Espárragos frescos|100 g|17
+Palmitos en lata|100 g|26
+Remolacha fresca cocida|100 g|30
+Repollo colorado|1 taza|40
+Apio crudo|100 g|17`);
+addCat('quesos','T2','Quesos',`
+Cheddar|100 g|400
+Cottage cremoso|100 g|104
+Cottage desnatado|100 g|80
+Blanco de dieta|100 g|75
+Camembert|100 g|265
+Petit Suisse|100 g|160
+Edam|100 g|357
+Gouda|100 g|356
+Gruyère|100 g|413
+Parmesano|100 g|350
+Provolone|100 g|330
+Ricotta|100 g|185
+Roquefort|100 g|360
+Suizo|100 g|350
+Mozzarella|15 g|47`);
+/* ---- Tabla 3 ---- */
+addCat('t3carne','T3','Pollo y cerdo (por pieza)',`
+Pechuga de pollo magra|1 pechuga|320
+Pierna de pollo magra|1 unidad|120
+Hamburguesa de pollo|1 unidad|310
+Filete magro de cerdo|1 filete|198
+Filete gordo de cerdo|1 filete|340`);
+addCat('t3pesc','T3','Pescados y mariscos',`
+Trucha|1 filete|132
+Calamar|100 g|78
+Cangrejo|1 unidad|135`);
+addCat('t3lact','T3','Lácteos y huevo',`
+Leche evaporada|1 taza|180
+Leche chocolatada|1 taza|124
+Leche de soja|1 taza|79
+Yogur frutado|1 taza|142
+Yogur con cereal|1 taza|230
+Queso fresco|1 loncha|97
+Queso crema|1 cucharada|50
+Clara de huevo|1 porción|13
+Yema de huevo|1 porción|64`);
+addCat('t3fruta','T3','Frutas',`
+Sandía|1 taza|60
+Chirimoya|1 unidad|180
+Papaya|1 taza|60
+Higo|1 unidad|30
+Mango|1 unidad|130`);
+addCat('t3veg','T3','Vegetales',`
+Alcachofa|1 unidad|55
+Rábano|½ taza|8
+Pepino|100 g|15
+Repollo|100 g|24`);
+addCat('t3tub','T3','Tubérculos y raíces',`
+Boniato|1 unidad|115`);
+addCat('t3carb','T3','Alimentos ricos en carbohidratos',`
+Pasta integral (cruda)|100 g|360`);
+addCat('t3grasas','T3','Aceites y grasas',`
+Mantequilla light|1 cucharada|45
+Nata líquida|1 cucharada|50`);
+addCat('t3salsas','T3','Salsas',`
+Mayonesa|1 cucharada|90
+Mayonesa light|1 cucharada|50
+Mostaza|½ taza|75`);
+/* ---- Complemento (valores orientativos; NO están en las tablas del profesor) ---- */
+addCat('comp','C','Alimentos habituales (aprox.)',`
+Pan de molde blanco|1 rebanada|75
+Pasta cocida|100 g|140
+Pasta cruda (seca)|100 g|355
+Arroz cocido|100 g|130
+Patata cocida|100 g|85
+Patatas fritas de bolsa|100 g|540
+Patatas fritas caseras|100 g|310
+Tortilla de patata|1 ración|280
+Croquetas|1 unidad|55
+Leche semidesnatada|200 ml|95
+Cereales de desayuno (copos)|30 g|115
+Cacao soluble (tipo Cola Cao)|15 g|55
+Galletas tipo María|100 g|440
+Croissant|1 unidad|240
+Magdalena|1 unidad|170
+Chocolate con leche|100 g|535
+Azúcar|5 g|20`);
+
+addCat('legum','C','Legumbres (aprox.)',`
+Lentejas cocidas|100 g|116
+Lentejas secas (crudas)|100 g|352
+Garbanzos cocidos|100 g|164
+Garbanzos secos (crudos)|100 g|378
+Judías blancas (alubias) cocidas|100 g|139
+Judías blancas (alubias) secas (crudas)|100 g|333
+Judías pintas cocidas|100 g|143
+Judías verdes cocidas (verdura)|100 g|35
+Guisantes cocidos|100 g|84
+Habas cocidas|100 g|110`);
+
+/* ---- Tabla 1: gasto por actividad (kcal por kg y minuto) ---- */
+const ACTS=[],AMAP={};
+function addActs(group,raw){
+  raw.trim().split('\n').forEach(l=>{const [n,h,m]=l.split('|');const a={id:n.trim(),group,h:+h,m:+m};ACTS.push(a);AMAP[a.id]=a;});
+}
+addActs('Actividades cotidianas',`
+Dormir|0.018|0.016
+Estar tumbado|0.023|0.020
+Estar sentado|0.028|0.025
+Estar de pie|0.029|0.026
+Estar en clase (sentado, atender y tomar apuntes)|0.030|0.027
+Conversar|0.024|0.021
+Hacer la cama|0.057|0.051
+Comer|0.030|0.027
+Asearse y vestirse|0.050|0.045
+Escribir|0.027|0.024
+Escribir a máquina|0.037|0.033
+Tocar el piano|0.038|0.034`);
+addActs('Tareas de casa',`
+Lavar los platos|0.037|0.033
+Cocinar|0.045|0.041
+Fregar el suelo o pasar la aspiradora|0.068|0.061
+Barrer|0.050|0.045
+Tareas de albañilería|0.070|0.063
+Cuidado del jardín|0.086|0.077
+Plantar y cavar|0.069|0.062
+Cuidado de animales|0.056|0.050
+Cortar madera|0.107|0.096
+Tareas de mecánica|0.060|0.054`);
+addActs('Actividades deportivas',`
+Subir escaleras|0.254|0.229
+Bajar escaleras|0.101|0.091
+Pasear (3 km/h aprox.)|0.051|0.046
+Caminar (5 km/h aprox.)|0.069|0.063
+Correr suave (6 km/h aprox.)|0.151|0.136
+Correr (8 km/h aprox.)|0.200|0.180
+Correr intensa (10 km/h aprox.)|0.300|0.270
+Bailar|0.070|0.063
+Ballet clásico|0.110|0.099
+Saltar a la cuerda|0.175|0.158
+Ciclismo suave|0.100|0.090
+Ciclismo deportivo|0.120|0.108
+Fútbol|0.137|0.123
+Baloncesto|0.140|0.126
+Tenis|0.109|0.098
+Voleibol|0.120|0.108
+Natación suave|0.128|0.115
+Natación deportiva|0.173|0.156
+Natación (espalda)|0.078|0.070
+Natación (braza)|0.106|0.095
+Natación (mariposa)|0.200|0.180
+Ping-pong|0.057|0.051
+Artes marciales|0.185|0.167`);
+const REST={H:0.018,M:0.016};
+
+/* ============ ESTADO ============ */
+const KEY='practica16_dieta_v1';
+function blank(){
+  const s={alumno:{nombre:'',curso:'',fecha:new Date().toISOString().slice(0,10),sexo:'H',edad:'',peso:'',altura:''},
+    opts:{formula:'fao_ph',net:false,avisos:true},
+    comidas:{},act:{},comp:{act:'',cat:'',food:''},
+    txt:{ej:'',tablas:'',proc:'',res:'',fiab:'',op:''},tab:'datos',day:'Lunes',aday:'Lunes'};
+  DAYS.forEach(d=>{s.comidas[d]={};MEAL_NAMES.forEach(m=>s.comidas[d][m]=[]);s.act[d]=[];});
+  return s;
+}
+let S=blank();
+try{
+  const raw=localStorage.getItem(KEY);
+  if(raw){const o=JSON.parse(raw);const b=blank();
+    ['alumno','opts','comp','txt'].forEach(k=>{if(o[k])Object.assign(b[k],o[k]);});
+    DAYS.forEach(d=>{if(o.comidas&&o.comidas[d])MEAL_NAMES.forEach(m=>{if(Array.isArray(o.comidas[d][m]))b.comidas[d][m]=o.comidas[d][m];});
+      if(o.act&&Array.isArray(o.act[d]))b.act[d]=o.act[d];});
+    ['tab','day','aday'].forEach(k=>{if(o[k])b[k]=o[k];});
+    S=b;}
+}catch(e){}
+let saveT=null;
+function save(){clearTimeout(saveT);saveT=setTimeout(()=>{try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}},250);}
+
+/* ============ UTILIDADES ============ */
+const $=(s,r=document)=>r.querySelector(s);
+const $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const nf=(n,d=0)=>Number.isFinite(n)?n.toLocaleString('es-ES',{maximumFractionDigits:d}):'—';
+const sg=(n,d=0)=>Number.isFinite(n)?((n>0?'+':'')+nf(n,d)):'—';
+function setPath(p,v){const k=p.split('.');let o=S;for(let i=0;i<k.length-1;i++)o=o[k[i]];o[k[k.length-1]]=v;}
+function getPath(p){return p.split('.').reduce((o,k)=>o[k],S);}
+function hm(min){const h=Math.floor(min/60),m=Math.round(min%60);return (h?h+' h ':'')+m+' min';}
+
+/* ============ CÁLCULOS ============ */
+function rowKcal(r){
+  if(r.cat==='_custom') return (+r.ckcal||0)*(+r.qty||0);
+  const f=FMAP[r.food]; if(!f) return 0; const q=+r.qty||0;
+  return f.u==='r'? q*f.kcal : q/f.q*f.kcal;
+}
+function actCoef(r){
+  const sx=S.alumno.sexo;let cf=0;
+  if(r.act==='_manual') cf=+r.coef||0;
+  else{const a=AMAP[r.act];if(a)cf=sx==='H'?a.h:a.m;}
+  if(S.opts.net) cf=Math.max(0,cf-REST[sx]);
+  return cf;
+}
+function actKcal(r){return (+r.min||0)*(+S.alumno.peso||0)*actCoef(r);}
+
+function calc(){
+  const a=S.alumno,peso=+a.peso||0,h=(+a.altura||0)/100;
+  let tmb=0,tmbTxt='';const fm=S.opts.formula,Hm=a.sexo==='H';
+  if(fm==='fao_p'){
+    if(peso>0){tmb=Hm?17.5*peso+651:12.2*peso+746;tmbTxt=Hm?`17,5 × ${nf(peso,1)} + 651`:`12,2 × ${nf(peso,1)} + 746`;}
+  }else if(fm==='sch_p'){
+    if(peso>0){tmb=Hm?17.686*peso+658.2:13.384*peso+692.6;tmbTxt=Hm?`17,686 × ${nf(peso,1)} + 658,2`:`13,384 × ${nf(peso,1)} + 692,6`;}
+  }else if(peso>0&&h>0){
+    if(Hm){tmb=16.6*peso+77*h+572;tmbTxt=`16,6 × ${nf(peso,1)} + 77 × ${nf(h,2)} + 572`;}
+    else{tmb=7.4*peso+482*h+217;tmbTxt=`7,4 × ${nf(peso,1)} + 482 × ${nf(h,2)} + 217`;}
+  }
+  const q=tmb/6,days={},tot={ing:0,tmb:0,q:0,act:0,gasto:0,be:0,n:0};
+  DAYS.forEach(d=>{
+    const meals={};let ing=0;
+    MEAL_NAMES.forEach(m=>{const s=S.comidas[d][m].reduce((x,r)=>x+rowKcal(r),0);meals[m]=s;ing+=s;});
+    let act=0,min=0;S.act[d].forEach(r=>{act+=actKcal(r);min+=(+r.min||0);});
+    const has=ing>0,gasto=tmb+q+act;
+    days[d]={meals,ing,act,min,gasto,has,be:has?ing-gasto:null,hasAct:S.act[d].length>0};
+    if(has&&tmb>0){tot.n++;tot.ing+=ing;tot.tmb+=tmb;tot.q+=q;tot.act+=act;tot.gasto+=gasto;tot.be+=ing-gasto;}
+  });
+  return {peso,h,tmb,q,tmbTxt,days,tot,ready:tmb>0};
+}
+let C=null;
+
+/* ============ RENDER: DATOS ============ */
+function renderDatos(){
+  const a=S.alumno,o=S.opts,fm=(o.formula==='fao_p'||o.formula==='sch_p')?o.formula:'fao_ph';
+  $('#p-datos').innerHTML=`
+  <div class="card">
+    <h2>Tus datos</h2>
+    <p class="intro">Con tu sexo, peso y altura se calcula tu metabolismo basal y el gasto de cada actividad. Todo lo que escribas se guarda solo en este navegador.</p>
+    <div class="grid2">
+      <label class="f">Nombre<input type="text" data-act="in" data-p="alumno.nombre" value="${esc(a.nombre)}" autocomplete="name"></label>
+      <label class="f">Curso<input type="text" data-act="in" data-p="alumno.curso" value="${esc(a.curso)}" placeholder="3.º ESO A"></label>
+      <label class="f">Fecha de inicio<input type="date" data-act="in" data-p="alumno.fecha" value="${esc(a.fecha)}"></label>
+      <label class="f">Soy<select data-act="in" data-p="alumno.sexo"><option value="H"${a.sexo==='H'?' selected':''}>Chico</option><option value="M"${a.sexo==='M'?' selected':''}>Chica</option></select></label>
+      <label class="f">Edad (años)<input type="number" inputmode="numeric" min="5" max="99" data-act="in" data-p="alumno.edad" value="${esc(a.edad)}"></label>
+      <label class="f">Peso (kg)<input type="number" inputmode="decimal" step="0.1" min="0" data-act="in" data-p="alumno.peso" value="${esc(a.peso)}"></label>
+      <label class="f">Altura (cm)<input type="number" inputmode="numeric" min="0" data-act="in" data-p="alumno.altura" value="${esc(a.altura)}" placeholder="165"></label>
+    </div>
+    <p class="msg" id="datosMsg"></p>
+  </div>
+  <div class="card">
+    <h2>Tus índices</h2>
+    <div class="idx" id="idx"></div>
+  </div>
+  <div class="card">
+    <h2>Opciones de cálculo</h2>
+    <label class="f" style="max-width:520px">Fórmula del metabolismo basal (10-18 años, chicos y chicas)
+      <select data-act="in" data-p="opts.formula">
+        <option value="fao_ph"${fm==='fao_ph'?' selected':''}>FAO/OMS/UNU 1985 · peso y altura</option>
+        <option value="fao_p"${fm==='fao_p'?' selected':''}>FAO/OMS/UNU 1985 · solo peso</option>
+        <option value="sch_p"${fm==='sch_p'?' selected':''}>Schofield 1985 · solo peso</option>
+      </select></label>
+    <div class="note" style="margin-top:10px;font-size:14px"><b>Fórmulas en kcal/día</b> (P = peso en kg, A = altura en m)<br>
+      FAO/OMS/UNU peso y altura: chicos 16,6·P + 77·A + 572 · chicas 7,4·P + 482·A + 217<br>
+      FAO/OMS/UNU solo peso: chicos 17,5·P + 651 · chicas 12,2·P + 746<br>
+      Schofield solo peso: chicos 17,686·P + 658,2 · chicas 13,384·P + 692,6</div>
+    <label class="chk"><input type="checkbox" data-act="in" data-p="opts.net"${o.net?' checked':''}><span>Descontar el gasto en reposo a cada actividad. Los coeficientes de la Tabla 1 ya incluyen el metabolismo basal; con esta opción no se cuenta dos veces.</span></label>
+    <label class="chk"><input type="checkbox" data-act="in" data-p="opts.avisos"${o.avisos?' checked':''}><span>Mostrar avisos ⚠ en los alimentos con valores dudosos de las tablas.</span></label>
+  </div>
+  <div class="note amber"><b>Muy importante.</b> No somos médicos ni nutricionistas. Esto son estimaciones aproximadas para reflexionar sobre nuestros hábitos y entender mejor la teoría, no para sacar conclusiones exactas. Tu cuerpo está creciendo y necesita energía: no hace falta que el balance sea cero cada día.</div>`;
+}
+
+/* ============ RENDER: COMIDAS ============ */
+function catOptions(sel){
+  let h='<option value="">Categoría…</option>';
+  [['T2','Tabla 2 · por porción de comida'],['T3','Tabla 3 · por unidad, taza…'],['C','Complemento (valores aproximados)']].forEach(([t,l])=>{
+    h+=`<optgroup label="${l}">`+CATS.filter(c=>c.table===t).map(c=>`<option value="${c.id}"${sel===c.id?' selected':''}>${esc(c.title)}</option>`).join('')+'</optgroup>';
+  });
+  return h+`<option value="_custom"${sel==='_custom'?' selected':''}>✏️ Otro alimento (lo escribo yo)</option>`;
+}
+function foodOptions(cat,sel){
+  let h='<option value="">Alimento…</option>';
+  FOODS.filter(f=>f.cat===cat).forEach(f=>{
+    h+=`<option value="${esc(f.key)}"${sel===f.key?' selected':''}>${f.warn&&S.opts.avisos?'⚠ ':''}${esc(f.name)} — ${esc(f.ref)} = ${f.kcal} kcal</option>`;
+  });
+  return h;
+}
+function dayButtons(kind,cur){
+  return `<div class="days" role="group" aria-label="Elegir día">`+DAYS.map(d=>`<button class="day" data-act="day" data-kind="${kind}" data-d="${d}" aria-pressed="${d===cur}">${d}<span class="dot" data-dot="${kind}|${d}"></span></button>`).join('')+'</div>';
+}
+function foodRow(d,m,i,r){
+  const f=FMAP[r.food];let mid,unit='',hint='';
+  if(r.cat==='_custom'){
+    mid=`<input type="text" data-act="cname" placeholder="¿Qué has tomado?" value="${esc(r.cname||'')}" aria-label="Nombre del alimento">
+      <div class="sub"><input type="number" min="0" step="any" inputmode="decimal" data-act="ckcal" value="${esc(r.ckcal||'')}" aria-label="kcal por ración"><span class="unit" style="margin:0">kcal por ración</span></div>`;
+    unit='raciones';
+  }else{
+    mid=`<select data-act="ffood" aria-label="Alimento"${r.cat?'':' disabled'}>${r.cat?foodOptions(r.cat,r.food):'<option>Elige antes la categoría</option>'}</select>`;
+    if(f){
+      unit=f.u==='r'?'raciones':f.u;
+      hint=f.u==='r'?`1 ración = ${esc(f.ref)} = ${f.kcal} kcal`:`${f.kcal} kcal por cada ${f.q} ${f.u}`;
+    }
+  }
+  const warn=(f&&f.warn&&S.opts.avisos)?`<div class="hint warn">⚠ ${esc(f.warn)}</div>`:'';
+  return `<div class="frow" data-d="${d}" data-m="${m}" data-i="${i}">
+    <div class="cat"><select data-act="fcat" aria-label="Categoría">${catOptions(r.cat)}</select></div>
+    <div class="food">${mid}</div>
+    <div class="qtybox"><input type="number" min="0" step="any" inputmode="decimal" data-act="fqty" value="${esc(r.qty||'')}" aria-label="Cantidad" placeholder="0"><span class="unit">${unit}</span></div>
+    <div class="kc"><b data-b="f|${d}|${m}|${i}">0</b> <span>kcal</span></div>
+    <button class="x" data-act="delfood" aria-label="Quitar alimento" title="Quitar">×</button>
+    ${hint?`<div class="hint">${hint}</div>`:''}${warn}
+  </div>`;
+}
+function renderComidas(){
+  let h=`<div class="card"><h2>Diario de comidas</h2>
+  <p class="intro">Apunta todo lo que tomes en cada toma. Elige la categoría, el alimento y la cantidad (gramos, ml o raciones): las kcal se calculan solas. Usa siempre la misma tabla en cada alimento y, si no encuentras algo, elige «Otro alimento».</p></div>`;
+  h+=dayButtons('c',S.day);
+  DAYS.forEach((d,di)=>{
+    const prev=di>0?DAYS[di-1]:null;
+    const empty=MEAL_NAMES.every(m=>S.comidas[d][m].length===0);
+    const prevHas=prev&&MEAL_NAMES.some(m=>S.comidas[prev][m].length>0);
+    h+=`<div class="daysec${d===S.day?' on':''}" data-d="${d}" data-kind="c">
+      <div class="dayhead"><h3>${d}</h3>
+      <div><span class="daytotal">Total ${d.toLowerCase()}: <span data-b="dt|${d}">0</span> kcal</span>
+      ${empty&&prevHas?`<button class="btn small noprint" style="margin-left:10px" data-act="copyfood" data-d="${d}">Copiar comidas de ${prev.toLowerCase()}</button>`:''}</div></div>`;
+    MEALS.forEach(([m,sub])=>{
+      const rows=S.comidas[d][m];
+      h+=`<div class="meal"><div class="mealhead"><h3>${m}${sub?`<small>${sub}</small>`:''}</h3><span class="mealtot"><span data-b="mt|${d}|${m}">0</span> kcal</span></div>
+        ${rows.length?rows.map((r,i)=>foodRow(d,m,i,r)).join(''):'<div class="empty">Todavía no has apuntado nada en esta toma.</div>'}
+        <button class="btn small noprint" style="margin-top:8px" data-act="addfood" data-d="${d}" data-m="${m}">+ Añadir alimento</button></div>`;
+    });
+    h+='</div>';
+  });
+  $('#p-comidas').innerHTML=h;
+}
+
+/* ============ RENDER: ACTIVIDAD ============ */
+function actOptions(sel,withManual=true){
+  let h='<option value="">Actividad…</option>';
+  const groups=[...new Set(ACTS.map(a=>a.group))];
+  groups.forEach(g=>{h+=`<optgroup label="${g}">`+ACTS.filter(a=>a.group===g).map(a=>`<option value="${esc(a.id)}"${sel===a.id?' selected':''}>${esc(a.id)} (${a[S.alumno.sexo==='H'?'h':'m'].toFixed(3).replace('.',',')})</option>`).join('')+'</optgroup>';});
+  if(withManual)h+=`<option value="_manual"${sel==='_manual'?' selected':''}>✏️ Otra actividad (pongo yo el coeficiente)</option>`;
+  return h;
+}
+function actRow(d,i,r){
+  const manual=r.act==='_manual';
+  const first=manual?`<input type="text" data-act="aname" placeholder="¿Qué actividad?" value="${esc(r.name||'')}" aria-label="Nombre de la actividad">
+      <div class="sub"><input type="number" min="0" step="any" inputmode="decimal" data-act="acoef" value="${esc(r.coef||'')}" aria-label="Coeficiente"><span class="unit" style="margin:0">kcal/kg·min</span></div>`:'';
+  return `<div class="arow" data-d="${d}" data-i="${i}">
+    <div class="aact"><select data-act="aact" aria-label="Actividad">${actOptions(r.act)}</select>${first}</div>
+    <div class="qtybox"><input type="number" min="0" step="any" inputmode="numeric" data-act="amin" value="${esc(r.min||'')}" aria-label="Minutos" placeholder="0"><span class="unit">minutos</span></div>
+    <div class="coef" data-b="ax|${d}|${i}"></div>
+    <div class="kc"><b data-b="a|${d}|${i}">0</b> <span>kcal</span></div>
+    <button class="x" data-act="delact" aria-label="Quitar actividad" title="Quitar">×</button>
+  </div>`;
+}
+function renderActividad(){
+  let h=`<div class="card"><h2>Diario de actividad</h2>
+  <p class="intro">Apunta cada día las actividades que haces y los minutos que les dedicas. El gasto se calcula así: minutos × tu peso × coeficiente de la Tabla 1. Ejemplo: 25 min andando con 78 kg (chico) → 25 × 78 × 0,069 = 134,55 kcal.</p></div>`;
+  h+=dayButtons('a',S.aday);
+  DAYS.forEach((d,di)=>{
+    const prev=di>0?DAYS[di-1]:null;
+    h+=`<div class="daysec${d===S.aday?' on':''}" data-d="${d}" data-kind="a">
+      <div class="dayhead"><h3>${d}</h3><div><span class="daytotal">Total ${d.toLowerCase()}: <span data-b="at|${d}">0</span> kcal</span>
+      ${S.act[d].length===0&&prev&&S.act[prev].length>0?`<button class="btn small noprint" style="margin-left:10px" data-act="copyact" data-d="${d}">Copiar actividades de ${prev.toLowerCase()}</button>`:''}</div></div>
+      <div class="meal" style="border-left-color:var(--c-act)">
+        <div data-b="am|${d}" style="font-size:14px;color:var(--muted)"></div>
+        <div class="prog" data-prog="${d}"><i></i></div>
+        ${S.act[d].length?S.act[d].map((r,i)=>actRow(d,i,r)).join(''):'<div class="empty">Todavía no has apuntado actividades este día.</div>'}
+        <button class="btn small noprint" style="margin-top:8px" data-act="addact" data-d="${d}">+ Añadir actividad</button>
+      </div></div>`;
+  });
+  $('#p-actividad').innerHTML=h;
+}
+
+/* ============ RENDER: BALANCE / CONCLUSIONES / CONSULTA ============ */
+function renderBalance(){
+  $('#p-balance').innerHTML=`
+  <div class="card"><h2>Balance final</h2>
+    <p class="intro">Balance = energía ingerida − energía gastada. El gasto es la suma del metabolismo basal (TMB), la producción de calor (TMB ÷ 6) y la actividad física. Los días sin comidas apuntadas no cuentan en los totales.</p>
+    <div class="tw"><table><thead><tr><th>Día</th><th>Aporte de energía</th><th>Metabolismo basal</th><th>Calor</th><th>Actividad</th><th>Gasto total</th><th>Balance</th></tr></thead>
+    <tbody id="balRows"></tbody></table></div>
+    <p class="intro" style="margin-top:10px;font-size:13.5px">Todas las cantidades en kcal.</p>
+  </div>
+  <div class="card"><h2>¿Cómo se reparte tu gasto?</h2><div id="distOut"></div></div>
+  <div class="card"><h2>Lectura de tu balance</h2><div id="readOut"></div></div>`;
+}
+function renderConclusiones(){
+  const cp=S.comp;
+  $('#p-conclusiones').innerHTML=`
+  <div class="card"><h2>3.º Qué podrías hacer según tu balance</h2>
+    <p class="intro">Usa tu balance medio diario. Si es positivo, calcula qué actividad (tipo y tiempo) lo compensaría. Si es negativo, calcula qué podrías añadir a tu dieta.</p>
+    <h3 style="margin:12px 0 6px">Si tu balance es positivo: gastar más</h3>
+    <label class="f" style="max-width:460px">Actividad que podrías hacer<select data-act="cact">${actOptions(cp.act,false)}</select></label>
+    <div class="res" id="compAct" aria-live="polite"></div>
+    <h3 style="margin:18px 0 6px">Si tu balance es negativo: tomar más energía</h3>
+    <div class="grid2" style="max-width:700px">
+      <label class="f">Categoría<select data-act="ccat">${catOptions(cp.cat).replace(/<option value="_custom"[\s\S]*?<\/option>/,'')}</select></label>
+      <label class="f">Alimento<select data-act="cfood" id="cfood">${cp.cat?foodOptions(cp.cat,cp.food):'<option value="">Elige antes la categoría</option>'}</select></label>
+    </div>
+    <div class="res" id="compFood" aria-live="polite"></div>
+    <div class="note" style="margin-top:12px">Son cálculos orientativos. Si tienes dudas sobre tu alimentación o tu peso, habla con un adulto de confianza o con tu médico.</div>
+    <label class="f" style="margin-top:12px">Tu propuesta con tus palabras (tipo de actividad, tiempo, qué cambiarías…)
+      <textarea data-act="txt" data-p="txt.ej">${esc(S.txt.ej)}</textarea></label>
+  </div>
+  <div class="card"><h2>4.º Comentario completo de la práctica</h2>
+    <div class="grid2" style="grid-template-columns:1fr">
+      <label class="f">Tablas y webs que has utilizado<textarea data-act="txt" data-p="txt.tablas">${esc(S.txt.tablas)}</textarea></label>
+      <label class="f">Procedimiento que has seguido<textarea data-act="txt" data-p="txt.proc">${esc(S.txt.proc)}</textarea></label>
+      <label class="f">Resultados obtenidos<textarea data-act="txt" data-p="txt.res">${esc(S.txt.res)}</textarea></label>
+      <label class="f">Fiabilidad de los datos (¿qué errores o aproximaciones hay?)<textarea data-act="txt" data-p="txt.fiab">${esc(S.txt.fiab)}</textarea></label>
+      <label class="f">Opinión personal<textarea data-act="txt" data-p="txt.op">${esc(S.txt.op)}</textarea></label>
+    </div>
+  </div>`;
+}
+function renderConsulta(filter=''){
+  const t=filter.trim().toLowerCase();
+  const rows=FOODS.filter(f=>!t||f.name.toLowerCase().includes(t)).map(f=>{
+    const c=CATS.find(c=>c.id===f.cat);
+    return `<tr><td class="l">${f.warn&&S.opts.avisos?'<span class="warnmark" title="'+esc(f.warn)+'">⚠ </span>':''}${esc(f.name)}</td><td class="l">${esc(c.title)}</td><td>${esc(f.ref)}</td><td>${f.kcal}</td><td class="l"><span class="pill">${c.table==='T2'?'Tabla 2':c.table==='T3'?'Tabla 3':'Complemento'}</span></td></tr>`;
+  }).join('');
+  if(!$('#p-consulta').dataset.ready){
+    const groups=[...new Set(ACTS.map(a=>a.group))];
+    $('#p-consulta').dataset.ready='1';
+    $('#p-consulta').innerHTML=`
+    <div class="card"><h2>Tabla 1 · Gasto energético por actividad</h2>
+      <p class="intro">Coeficientes en kcal por kg de peso y minuto.</p>
+      <div class="tblscroll"><table><thead><tr><th>Actividad</th><th>Chicos</th><th>Chicas</th></tr></thead><tbody>
+      ${groups.map(g=>`<tr class="total"><td colspan="3">${g}</td></tr>`+ACTS.filter(a=>a.group===g).map(a=>`<tr><td>${esc(a.id)}</td><td>${a.h.toFixed(3).replace('.',',')}</td><td>${a.m.toFixed(3).replace('.',',')}</td></tr>`).join('')).join('')}
+      </tbody></table></div></div>
+    <div class="card"><h2>Tablas 2 y 3 · Valor energético de los alimentos</h2>
+      <p class="intro">Fuentes: tablas de la práctica (www.saludenforma.net) más un pequeño complemento aproximado. Los avisos ⚠ marcan valores que conviene contrastar.</p>
+      <input class="search" type="search" id="cfilter" data-act="cfilter" placeholder="Buscar alimento…" aria-label="Buscar alimento" style="border:1px solid var(--line);background:var(--surface2);border-radius:8px;padding:8px 10px;min-height:40px">
+      <div class="tblscroll"><table><thead><tr><th class="l">Alimento</th><th class="l">Categoría</th><th>Cantidad de referencia</th><th>kcal</th><th class="l">Fuente</th></tr></thead><tbody id="foodRows">${rows}</tbody></table></div></div>`;
+  }else{ $('#foodRows').innerHTML=rows; }
+}
+
+/* ============ PINTAR (cálculos en vivo) ============ */
+function bindVal(k){
+  const p=k.split('|'),c=C;
+  switch(p[0]){
+    case 'f':return nf(rowKcal(S.comidas[p[1]][p[2]][+p[3]]));
+    case 'mt':return nf(c.days[p[1]].meals[p[2]]);
+    case 'dt':return nf(c.days[p[1]].ing);
+    case 'a':return nf(actKcal(S.act[p[1]][+p[2]]));
+    case 'ax':{const r=S.act[p[1]][+p[2]];const cf=actCoef(r);
+      return (+r.min&&c.peso&&cf)?`${nf(+r.min,1)} × ${nf(c.peso,1)} × ${String(+cf.toFixed(3)).replace('.',',')}`:'';}
+    case 'at':return nf(c.days[p[1]].act);
+    case 'am':{const m=c.days[p[1]].min;
+      return m?`Has registrado ${hm(m)} de 24 h${m>1440?' · ¡te has pasado de 24 h!':m<1440?' · te quedan '+hm(1440-m)+' sin apuntar':''}`:'Apunta aquí cómo reparties las 24 horas del día (incluido dormir, si quieres).';}
+  }
+  return '';
+}
+function paint(){
+  C=calc();
+  $$('[data-b]').forEach(el=>{el.textContent=bindVal(el.dataset.b);});
+  $$('[data-prog]').forEach(el=>{const m=C.days[el.dataset.prog].min;el.firstElementChild.style.width=Math.min(100,m/14.4)+'%';el.classList.toggle('over',m>1440);});
+  $$('[data-dot]').forEach(el=>{const [k,d]=el.dataset.dot.split('|');
+    el.classList.toggle('on',k==='c'?C.days[d].has:C.days[d].hasAct);});
+  paintMeter();paintIdx();paintBalance();paintComp();paintMsg();
+}
+function paintMeter(){
+  const t=C.tot,n=t.n,be=n?t.be/n:null;
+  $('#mIng').textContent=n?nf(t.ing/n):'—';
+  $('#mGas').textContent=n?nf(t.gasto/n):'—';
+  const b=$('#mBe');b.textContent=n?sg(be):'—';
+  b.className=n?(be>0?'pos':be<0?'neg':'zero'):'';
+  $('#mBeL').textContent=n?`balance medio (${n} ${n===1?'día':'días'})`:'balance medio';
+  const g=$('#gfill');
+  if(n){const p=Math.max(-1,Math.min(1,be/1000));
+    if(p>=0){g.className='gfill pos';g.style.left='50%';g.style.width=(p*50)+'%';}
+    else{g.className='gfill neg';g.style.left=(50+p*50)+'%';g.style.width=(-p*50)+'%';}
+  }else{g.style.width='0';}
+}
+function paintIdx(){
+  const el=$('#idx');if(!el)return;
+  if(!C.ready){el.innerHTML='<div class="empty">'+(S.opts.formula==='fao_p'||S.opts.formula==='sch_p'?'Escribe tu peso para ver tus índices.':'Escribe tu peso y tu altura para ver tus índices.')+'</div>';return;}
+  el.innerHTML=`
+   <div class="idxbox"><div class="t">Metabolismo basal (TMB)</div><div class="v">${nf(C.tmb)} <small>kcal/día</small></div><div class="calc">${C.tmbTxt} = ${nf(C.tmb,1)}</div></div>
+   <div class="idxbox"><div class="t">Producción de calor</div><div class="v">${nf(C.q)} <small>kcal/día</small></div><div class="calc">TMB ÷ 6 = ${nf(C.tmb,1)} ÷ 6 = ${nf(C.q,1)}</div></div>
+   <div class="idxbox"><div class="t">Gasto sin actividad física</div><div class="v">${nf(C.tmb+C.q)} <small>kcal/día</small></div><div class="calc">TMB + calor. La actividad se suma en el apartado 3.</div></div>`;
+}
+function paintMsg(){
+  const el=$('#datosMsg');if(!el)return;const a=S.alumno,m=[];
+  if(a.altura&&+a.altura>0&&+a.altura<3)m.push('La altura va en centímetros (por ejemplo, 165), no en metros.');
+  if(a.peso&&(+a.peso<20||+a.peso>200))m.push('Revisa el peso: debe estar en kg.');
+  if(a.altura&&+a.altura>=3&&(+a.altura<100||+a.altura>230))m.push('Revisa la altura: debe estar en cm.');
+  if(a.edad&&(+a.edad<10||+a.edad>18))m.push('La fórmula del metabolismo basal de esta práctica está pensada para personas de 10 a 18 años.');
+  el.innerHTML=m.join('<br>');
+}
+function paintBalance(){
+  const body=$('#balRows');if(!body)return;
+  const t=C.tot;
+  if(!C.ready){body.innerHTML='<tr><td colspan="7" class="l">Primero escribe tu peso y tu altura en «Mis datos».</td></tr>';$('#distOut').innerHTML='';$('#readOut').innerHTML='';return;}
+  let h='';
+  DAYS.forEach(d=>{const x=C.days[d];
+    h+=x.has?`<tr><td>${d}</td><td>${nf(x.ing)}</td><td>${nf(C.tmb)}</td><td>${nf(C.q)}</td><td>${nf(x.act)}</td><td>${nf(x.gasto)}</td><td class="${x.be>0?'pos':x.be<0?'neg':''}">${sg(x.be)}</td></tr>`
+      :`<tr><td>${d}</td><td colspan="6" class="l" style="color:var(--muted)">Sin comidas apuntadas</td></tr>`;});
+  if(t.n){h+=`<tr class="total"><td>Balance total (${t.n} ${t.n===1?'día':'días'})</td><td>${nf(t.ing)}</td><td>${nf(t.tmb)}</td><td>${nf(t.q)}</td><td>${nf(t.act)}</td><td>${nf(t.gasto)}</td><td>${sg(t.be)}</td></tr>
+    <tr class="total"><td>Media diaria</td><td>${nf(t.ing/t.n)}</td><td>${nf(t.tmb/t.n)}</td><td>${nf(t.q/t.n)}</td><td>${nf(t.act/t.n)}</td><td>${nf(t.gasto/t.n)}</td><td>${sg(t.be/t.n)}</td></tr>`;}
+  body.innerHTML=h;
+  if(!t.n){$('#distOut').innerHTML='<div class="empty">Apunta las comidas de al menos un día para ver el reparto.</div>';$('#readOut').innerHTML='<div class="empty">Aún no hay datos suficientes.</div>';return;}
+  const pt=t.tmb/t.gasto*100,pq=t.q/t.gasto*100,pa=t.act/t.gasto*100;
+  const seg=(c,v)=>`<div class="${c}" style="width:${v}%">${v>=7?nf(v)+' %':''}</div>`;
+  $('#distOut').innerHTML=`
+    <div class="legend"><span><i style="background:var(--c-tmb)"></i>Metabolismo basal</span><span><i style="background:#b07d0c"></i>Producción de calor</span><span><i style="background:var(--c-act)"></i>Actividad física</span></div>
+    <div><b>Tu semana</b></div><div class="stack">${seg('a',pt)}${seg('b',pq)}${seg('c',pa)}</div>
+    <div><b>Referencia en una dieta equilibrada</b></div><div class="stack">${seg('a',65)}${seg('b',10)}${seg('c',25)}</div>
+    <p class="intro">Tu actividad física supone un ${nf(pa)} % de tu gasto; la referencia ronda el 25 %.</p>`;
+  const be=t.be/t.n,g=t.gasto/t.n,th=g*0.1;
+  let txt;
+  if(be>th)txt=`Tu balance medio es <b>positivo</b>: según tus registros tomas unas <b>${nf(be)} kcal más</b> de las que gastas cada día (≈ ${nf(be*7)} kcal a la semana).`;
+  else if(be<-th)txt=`Tu balance medio es <b>negativo</b>: según tus registros tomas unas <b>${nf(-be)} kcal menos</b> de las que gastas cada día (≈ ${nf(-be*7)} kcal a la semana).`;
+  else txt=`Tu balance medio es <b>casi equilibrado</b> (${sg(be)} kcal al día, menos del 10 % de tu gasto).`;
+  const days0=DAYS.filter(d=>C.days[d].has&&!C.days[d].hasAct).length;
+  $('#readOut').innerHTML=`<p>${txt}</p>
+   ${days0?`<div class="note amber">En ${days0} ${days0===1?'día':'días'} con comidas no has apuntado actividad: su gasto en actividad será 0 y el balance saldrá más alto de lo real.</div>`:''}
+   <div class="note">Recuerda: son estimaciones groseras. Si tu balance sale muy alto o muy bajo, revisa primero si has apuntado todo (comidas, raciones y actividades) y las unidades. En la adolescencia un balance algo positivo es normal porque el cuerpo está creciendo.</div>`;
+}
+function paintComp(){
+  const a=$('#compAct'),f=$('#compFood');if(!a)return;
+  const t=C.tot;
+  if(!C.ready||!t.n){const m='Completa tus datos y apunta las comidas de al menos un día para calcularlo.';a.textContent=m;f.textContent=m;return;}
+  const be=t.be/t.n;
+  if(be<=0)a.textContent='Tu balance medio no es positivo, así que no necesitas gastar más energía para compensarlo.';
+  else if(!AMAP[S.comp.act])a.textContent=`Tu balance medio es de ${sg(be)} kcal al día. Elige una actividad para ver cuánto tiempo necesitarías.`;
+  else{const cf=actCoef({act:S.comp.act});
+    if(!cf||!C.peso)a.textContent='Con esta opción de cálculo, esa actividad no suma gasto extra. Prueba con otra.';
+    else{const min=be/(C.peso*cf);
+      a.innerHTML=`Para gastar ${nf(be)} kcal al día con <b>${esc(S.comp.act)}</b> necesitarías unos <b>${hm(min)} al día</b> (≈ ${hm(min*7)} a la semana).<br><span style="color:var(--muted);font-size:14px">${nf(be)} ÷ (${nf(C.peso,1)} kg × ${String(+cf.toFixed(3)).replace('.',',')}) = ${nf(min,1)} min</span>`;}}
+  if(be>=0)f.textContent='Tu balance medio no es negativo, así que no hace falta añadir energía a tu dieta.';
+  else{const fd=FMAP[S.comp.food];
+    if(!fd)f.textContent=`Tu balance medio es de ${sg(be)} kcal al día. Elige un alimento para ver cuánto necesitarías.`;
+    else{const need=-be;
+      const cant=fd.u==='r'?`${nf(need/fd.kcal,1)} raciones (1 ración = ${fd.ref})`:`${nf(need/fd.kcal*fd.q)} ${fd.u}`;
+      f.innerHTML=`Para cubrir ${nf(need)} kcal al día con <b>${esc(fd.name)}</b> necesitarías unos <b>${cant}</b>.`;}}
+}
+
+/* ============ NAVEGACIÓN ============ */
+function go(tab){
+  S.tab=tab;
+  $$('.panel').forEach(p=>p.classList.toggle('on',p.id==='p-'+tab));
+  $$('.tab').forEach(t=>t.setAttribute('aria-selected',t.dataset.tab===tab));
+  window.scrollTo({top:0});
+  if(tab==='consulta')renderConsulta($('#cfilter')?$('#cfilter').value:'');
+  save();
+}
+function showDay(kind,d){
+  if(kind==='c')S.day=d;else S.aday=d;
+  const panel=kind==='c'?'#p-comidas':'#p-actividad';
+  $$(panel+' .daysec').forEach(s=>s.classList.toggle('on',s.dataset.d===d));
+  $$(panel+' .day').forEach(b=>b.setAttribute('aria-pressed',b.dataset.d===d));
+  save();
+}
+function rowOf(el){
+  const r=el.closest('.frow,.arow');if(!r)return null;
+  if(r.classList.contains('frow'))return S.comidas[r.dataset.d][r.dataset.m][+r.dataset.i];
+  return S.act[r.dataset.d][+r.dataset.i];
+}
+function redoFood(){renderComidas();paint();save();}
+function redoAct(){renderActividad();paint();save();}
+
+/* ============ EVENTOS ============ */
+let resetArm=null;
+document.addEventListener('click',e=>{
+  const b=e.target.closest('button[data-act]');if(!b)return;
+  const a=b.dataset.act,d=b.dataset.d,m=b.dataset.m;
+  const keep=()=>{const y=window.scrollY;requestAnimationFrame(()=>window.scrollTo({top:y}));};
+  if(a==='tab')go(b.dataset.tab);
+  else if(a==='day')showDay(b.dataset.kind,d);
+  else if(a==='addfood'){S.comidas[d][m].push({cat:'',food:'',qty:''});redoFood();keep();}
+  else if(a==='delfood'){const r=b.closest('.frow');S.comidas[r.dataset.d][r.dataset.m].splice(+r.dataset.i,1);redoFood();keep();}
+  else if(a==='copyfood'){const p=DAYS[DAYS.indexOf(d)-1];S.comidas[d]=JSON.parse(JSON.stringify(S.comidas[p]));redoFood();}
+  else if(a==='addact'){S.act[d].push({act:'',min:''});redoAct();keep();}
+  else if(a==='delact'){const r=b.closest('.arow');S.act[r.dataset.d].splice(+r.dataset.i,1);redoAct();keep();}
+  else if(a==='copyact'){const p=DAYS[DAYS.indexOf(d)-1];S.act[d]=JSON.parse(JSON.stringify(S.act[p]));redoAct();}
+  else if(a==='print'){try{window.print();}catch(err){alert('Usa la opción Imprimir de tu navegador (Ctrl+P).');}}
+  else if(a==='reset'){
+    if(!resetArm){b.textContent='¿Seguro? Pulsa otra vez';resetArm=setTimeout(()=>{resetArm=null;b.textContent='Borrar todo';},4000);}
+    else{clearTimeout(resetArm);resetArm=null;b.textContent='Borrar todo';S=blank();try{localStorage.removeItem(KEY);}catch(err){}initAll();}
+  }
+});
+document.addEventListener('change',e=>{
+  const t=e.target,a=t.dataset.act;if(!a)return;
+  if(a==='fcat'){const r=rowOf(t);r.cat=t.value;r.food='';r.qty='';redoFood();}
+  else if(a==='ffood'){const r=rowOf(t);r.food=t.value;const f=FMAP[t.value];r.qty=f?(f.u==='r'?1:f.q):'';redoFood();}
+  else if(a==='aact'){const r=rowOf(t);r.act=t.value;if(!r.min)r.min='';redoAct();}
+  else if(a==='cact'){S.comp.act=t.value;paint();save();}
+  else if(a==='ccat'){S.comp.cat=t.value;S.comp.food='';$('#cfood').innerHTML=t.value?foodOptions(t.value,''):'<option value="">Elige antes la categoría</option>';paint();save();}
+  else if(a==='cfood'){S.comp.food=t.value;paint();save();}
+});
+document.addEventListener('input',e=>{
+  const t=e.target,a=t.dataset.act;if(!a)return;
+  if(a==='in'){
+    const v=t.type==='checkbox'?t.checked:t.value;setPath(t.dataset.p,v);
+    if(t.dataset.p==='alumno.sexo'||t.dataset.p==='opts.net'||t.dataset.p==='opts.formula'||t.dataset.p==='opts.avisos'){
+      renderComidas();renderActividad();renderConclusiones();if($('#p-consulta').dataset.ready)renderConsulta($('#cfilter').value);
+    }
+    paint();save();
+  }
+  else if(a==='fqty'){rowOf(t).qty=t.value;paint();save();}
+  else if(a==='cname'){rowOf(t).cname=t.value;save();}
+  else if(a==='ckcal'){rowOf(t).ckcal=t.value;paint();save();}
+  else if(a==='amin'){rowOf(t).min=t.value;paint();save();}
+  else if(a==='aname'){rowOf(t).name=t.value;save();}
+  else if(a==='acoef'){rowOf(t).coef=t.value;paint();save();}
+  else if(a==='txt'){setPath(t.dataset.p,t.value);save();}
+  else if(a==='cfilter'){renderConsulta(t.value);}
+});
+
+/* ============ ARRANQUE ============ */
+function initAll(){
+  renderDatos();renderComidas();renderActividad();renderBalance();renderConclusiones();
+  paint();go(S.tab||'datos');
+}
+initAll();
+</script>
+</body>
+</html>
